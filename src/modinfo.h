@@ -31,6 +31,7 @@ class QDir;
 #include <QSharedPointer>
 #include <QString>
 #include <QStringList>
+#include <QColor>
 
 #include <boost/function.hpp>
 
@@ -43,7 +44,7 @@ namespace MOShared { class DirectoryEntry; }
 
 /**
  * @brief Represents meta information about a single mod.
- * 
+ *
  * Represents meta information about a single mod. The class interface is used
  * to manage the mod collection
  *
@@ -62,6 +63,7 @@ public:
   enum EFlag {
     FLAG_INVALID,
     FLAG_BACKUP,
+    FLAG_SEPARATOR,
     FLAG_OVERWRITE,
     FLAG_FOREIGN,
     FLAG_NOTENDORSED,
@@ -70,6 +72,11 @@ public:
     FLAG_CONFLICT_OVERWRITTEN,
     FLAG_CONFLICT_MIXED,
     FLAG_CONFLICT_REDUNDANT,
+    FLAG_ARCHIVE_LOOSE_CONFLICT_OVERWRITE,
+    FLAG_ARCHIVE_LOOSE_CONFLICT_OVERWRITTEN,
+    FLAG_ARCHIVE_CONFLICT_OVERWRITE,
+    FLAG_ARCHIVE_CONFLICT_OVERWRITTEN,
+    FLAG_ARCHIVE_CONFLICT_MIXED,
     FLAG_PLUGIN_SELECTED,
     FLAG_ALTERNATE_GAME
   };
@@ -83,12 +90,14 @@ public:
     CONTENT_SOUND,
     CONTENT_SCRIPT,
     CONTENT_SKSE,
+	  CONTENT_SKSEFILES,
     CONTENT_SKYPROC,
     CONTENT_MCM,
-    CONTENT_INI
+    CONTENT_INI,
+    CONTENT_MODGROUP
   };
 
-  static const int NUM_CONTENT_TYPES = CONTENT_INI + 1;
+  static const int NUM_CONTENT_TYPES = CONTENT_MODGROUP + 1;
 
   enum EHighlight {
     HIGHLIGHT_NONE = 0,
@@ -262,6 +271,12 @@ public:
    * @note this function does not test whether categoryID actually identifies a valid category
    **/
   virtual void setCategory(int categoryID, bool active) = 0;
+
+  /**
+   * @brief changes the comments (manually set information displayed in the mod list) for this mod
+   * @param comments new comments
+   */
+  virtual void setComments(const QString &comments) = 0;
 
   /**
    * @brief change the notes (manually set information) for this mod
@@ -491,6 +506,11 @@ public:
   virtual QString getDescription() const = 0;
 
   /**
+   * @return comments for this mod
+   */
+  virtual QString comments() const = 0;
+
+  /**
    * @return notes for this mod
    */
   virtual QString notes() const = 0;
@@ -518,7 +538,17 @@ public:
   /**
    * @return a list of archives belonging to this mod (as absolute file paths)
    */
-  virtual QStringList archives() const = 0;
+  virtual QStringList archives(bool checkOnDisk = false) = 0;
+
+  /*
+   *@return the color choosen by the user for the mod/separator
+   */
+  virtual QColor getColor() { return QColor(); }
+
+  /*
+   *@return true if the color has been set successfully.
+   */
+  virtual void setColor(QColor color) { }
 
   /**
    * @brief adds the information that a file has been installed into this mod
@@ -557,7 +587,7 @@ public:
   /**
    * @return true if this mod is considered "valid", that is: it contains data used by the game
    **/
-  bool isValid() const { return m_Valid; }
+  virtual bool isValid() const { return m_Valid; }
 
   /**
    * @return true if the file has been endorsed on nexus
@@ -573,6 +603,11 @@ public:
    * @brief updates the mod to flag it as converted in order to ignore the alternate game warning
    */
   virtual void markConverted(bool converted) {}
+
+  /**
+  * @brief updates the mod to flag it as valid in order to ignore the invalid game data flag
+  */
+  virtual void markValidated(bool validated) {}
 
   /**
    * @brief reads meta information from disk
@@ -593,6 +628,26 @@ public:
    * @return list of mods (as mod index) that overwrite this one. Updates may be delayed
    */
   virtual std::set<unsigned int> getModOverwritten() { return std::set<unsigned int>(); }
+
+  /**
+   * @return retrieve list of mods (as mod index) with archives that are overwritten by this one. Updates may be delayed
+  */
+  virtual std::set<unsigned int> getModArchiveOverwrite() { return std::set<unsigned int>(); }
+
+  /**
+  * @return list of mods (as mod index) with archives that overwrite this one. Updates may be delayed
+  */
+  virtual std::set<unsigned int> getModArchiveOverwritten() { return std::set<unsigned int>(); }
+
+  /**
+  * @return retrieve list of mods (as mod index) with archives that are overwritten by thos mod's loose files. Updates may be delayed
+  */
+  virtual std::set<unsigned int> getModArchiveLooseOverwrite() { return std::set<unsigned int>(); }
+
+  /**
+  * @return list of mods (as mod index) with loose files that overwrite this one's archive files. Updates may be delayed
+  */
+  virtual std::set<unsigned int> getModArchiveLooseOverwritten() { return std::set<unsigned int>(); }
 
   /**
    * @brief update conflict information

@@ -66,6 +66,7 @@ void InstanceManager::clearCurrentInstance()
 {
   setCurrentInstance("");
   m_Reset = true;
+  m_overrideInstance = false;
 }
 
 void InstanceManager::setCurrentInstance(const QString &name)
@@ -85,7 +86,7 @@ bool InstanceManager::deleteLocalInstance(const QString &instanceId) const
 
   if (!MOBase::shellDelete(QStringList(instancePath),true))
   {
-    qWarning("Failed to shell-delete \"%s\" (errorcode %lu), trying regular delete", qPrintable(instancePath), ::GetLastError());
+    qWarning("Failed to shell-delete \"%s\" (errorcode %lu), trying regular delete", qUtf8Printable(instancePath), ::GetLastError());
     if (!MOBase::removeDir(instancePath))
     {
       qWarning("regular delete failed too");
@@ -136,12 +137,14 @@ QString InstanceManager::queryInstanceName(const QStringList &instanceList) cons
     QInputDialog dialog;
 
 	  dialog.setWindowTitle(QObject::tr("Enter a Name for the new Instance"));
-    dialog.setLabelText(QObject::tr("Enter a new name or select one from the suggested list:"));
+    dialog.setLabelText(QObject::tr("Enter a new name or select one from the suggested list: \n"
+                                    "(This is just a name for the Instance and can be whatever you wish,\n"
+                                    " the actual game selection will happen on the next screen regardless of chosen name)"));
     // would be neat if we could take the names from the game plugins but
     // the required initialization order requires the ini file to be
     // available *before* we load plugins
-    dialog.setComboBoxItems({ "NewName", "Fallout 4", "SkyrimSE", "Skyrim", "Fallout 3",
-                              "Fallout NV", "FO4VR", "Oblivion" });
+    dialog.setComboBoxItems({ "NewName", "Fallout 4", "SkyrimSE", "Skyrim", "SkyrimVR", "Fallout 3",
+                              "Fallout NV", "TTW", "FO4VR", "Oblivion", "Morrowind" });
     dialog.setComboBoxEditable(true);
 
     if (dialog.exec() == QDialog::Rejected) {

@@ -18,6 +18,7 @@ public:
   virtual bool updateNXMInfo() { return false; }
   virtual void setCategory(int, bool) {}
   virtual bool setName(const QString&) { return false; }
+  virtual void setComments(const QString&) {}
   virtual void setNotes(const QString&) {}
   virtual void setGameName(QString) {}
   virtual void setNexusID(int) {}
@@ -33,6 +34,7 @@ public:
   virtual bool isEmpty() const { return false; }
   virtual QString name() const;
   virtual QString internalName() const { return name(); }
+  virtual QString comments() const { return ""; }
   virtual QString notes() const { return ""; }
   virtual QDateTime creationTime() const;
   virtual QString absolutePath() const;
@@ -47,7 +49,7 @@ public:
   virtual QDateTime getLastNexusQuery() const { return QDateTime(); }
   virtual QString getNexusDescription() const { return QString(); }
   virtual int getFixedPriority() const { return INT_MIN; }
-  virtual QStringList archives() const { return m_Archives; }
+  virtual QStringList archives(bool checkOnDisk = false)  { return m_Archives; }
   virtual QStringList stealFiles() const { return m_Archives + QStringList(m_ReferenceFile); }
   virtual bool alwaysEnabled() const { return true; }
   virtual void addInstalledFile(int, int) {}

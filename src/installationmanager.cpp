@@ -312,13 +312,13 @@ QStringList InstallationManager::extractFiles(const QStringList &filesOrig, bool
   return result;
 }
 
-IPluginInstaller::EInstallResult InstallationManager::installArchive(GuessedValue<QString> &modName, const QString &archiveName)
+IPluginInstaller::EInstallResult InstallationManager::installArchive(GuessedValue<QString> &modName, const QString &archiveName, const int &modId)
 {
   // in earlier versions the modName was copied here and the copy passed to install. I don't know why I did this and it causes
   // a problem if this is called by the bundle installer and the bundled installer adds additional names that then end up being used,
   // because the caller will then not have the right name.
   bool iniTweaks;
-  if (install(archiveName, modName, iniTweaks)) {
+  if (install(archiveName, modName, iniTweaks, modId)) {
     return IPluginInstaller::RESULT_SUCCESS;
   } else {
     return IPluginInstaller::RESULT_FAILED;
@@ -451,7 +451,7 @@ void InstallationManager::updateProgressFile(QString const &fileName)
 
 void InstallationManager::report7ZipError(QString const &errorMessage)
 {
-  reportError(errorMessage);
+  m_ErrorMessage = errorMessage;
   m_ArchiveHandler->cancel();
 }
 
@@ -579,6 +579,7 @@ bool InstallationManager::doInstall(GuessedValue<QString> &modName, QString game
 
   m_InstallationProgress = new QProgressDialog(m_ParentWidget);
   ON_BLOCK_EXIT([this] () {
+    m_InstallationProgress->cancel();
     m_InstallationProgress->hide();
     m_InstallationProgress->deleteLater();
     m_InstallationProgress = nullptr;
@@ -608,7 +609,11 @@ bool InstallationManager::doInstall(GuessedValue<QString> &modName, QString game
   } while (!future.isFinished());
   if (!future.result()) {
     if (m_ArchiveHandler->getLastError() == Archive::ERROR_EXTRACT_CANCELLED) {
+      if (!m_ErrorMessage.isEmpty()) {
+        throw MyException(QString("extracting failed (%1)").arg(m_ErrorMessage));
+      } else {
       return false;
+      }
     } else {
       throw MyException(QString("extracting failed (%1)").arg(m_ArchiveHandler->getLastError()));
     }
@@ -638,6 +643,9 @@ bool InstallationManager::doInstall(GuessedValue<QString> &modName, QString game
   settingsFile.setValue("installationFile", m_CurrentFile);
   settingsFile.setValue("repository", repository);
   settingsFile.setValue("url", m_URL);
+
+  //cleanup of m_URL or this will persist across installs.
+  m_URL = "";
 
   if (!merge) {
     // this does not clear the list we have in memory but the mod is going to have to be re-read anyway
@@ -673,7 +681,14 @@ void InstallationManager::postInstallCleanup()
   // TODO: this doesn't yet remove directories. Also, the files may be left there if this point isn't reached
   for (const QString &tempFile : m_TempFilesToDelete) {
     QFileInfo fileInfo(QDir::tempPath() + "/" + tempFile);
-    QFile::remove(fileInfo.absoluteFilePath());
+    if (fileInfo.exists()) {
+      if (!fileInfo.isReadable() || !fileInfo.isWritable()) {
+        QFile::setPermissions(fileInfo.absoluteFilePath(), QFile::ReadOther | QFile::WriteOther);
+      }
+      if (!QFile::remove(fileInfo.absoluteFilePath())) {
+        qWarning() << "Unable to delete " << fileInfo.absoluteFilePath();
+      }
+    }
     directoriesToRemove.insert(fileInfo.absolutePath());
   }
 
@@ -687,7 +702,8 @@ void InstallationManager::postInstallCleanup()
 
 bool InstallationManager::install(const QString &fileName,
                                   GuessedValue<QString> &modName,
-                                  bool &hasIniTweaks)
+                                  bool &hasIniTweaks,
+                                  int modID)
 {
   QFileInfo fileInfo(fileName);
   if (m_SupportedExtensions.find(fileInfo.suffix()) == m_SupportedExtensions.end()) {
@@ -701,7 +717,6 @@ bool InstallationManager::install(const QString &fileName,
 
   // read out meta information from the download if available
   QString gameName = "";
-  int modID = 0;
   QString version = "";
   QString newestVersion = "";
   int categoryID = 0;
@@ -747,7 +762,7 @@ bool InstallationManager::install(const QString &fileName,
   if (fileInfo.dir() == QDir(m_DownloadsDirectory)) {
     m_CurrentFile = fileInfo.fileName();
   }
-  qDebug("using mod name \"%s\" (id %d) -> %s", modName->toUtf8().constData(), modID, qPrintable(m_CurrentFile));
+  qDebug("using mod name \"%s\" (id %d) -> %s", modName->toUtf8().constData(), modID, qUtf8Printable(m_CurrentFile));
 
   //If there's an archive already open, close it. This happens with the bundle
   //installer when it uncompresses a split archive, then finds it has a real archive
@@ -759,8 +774,8 @@ bool InstallationManager::install(const QString &fileName,
                                             new MethodCallback<InstallationManager, void, QString *>(this, &InstallationManager::queryPassword));
   if (!archiveOpen) {
     qDebug("integrated archiver can't open %s: %s (%d)",
-           qPrintable(fileName),
-           qPrintable(getErrorString(m_ArchiveHandler->getLastError())),
+           qUtf8Printable(fileName),
+           qUtf8Printable(getErrorString(m_ArchiveHandler->getLastError())),
            m_ArchiveHandler->getLastError());
   }
   ON_BLOCK_EXIT(std::bind(&InstallationManager::postInstallCleanup, this));
@@ -830,7 +845,7 @@ bool InstallationManager::install(const QString &fileName,
       }
     } catch (const IncompatibilityException &e) {
       qCritical("plugin \"%s\" incompatible: %s",
-                qPrintable(installer->name()), e.what());
+                qUtf8Printable(installer->name()), e.what());
     }
 
     // act upon the installation result. at this point the files have already been

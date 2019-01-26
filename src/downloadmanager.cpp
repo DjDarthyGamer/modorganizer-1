@@ -64,7 +64,7 @@ DownloadManager::DownloadInfo *DownloadManager::DownloadInfo::createNew(const Mo
   info->m_DownloadID = s_NextDownloadID++;
   info->m_StartTime.start();
   info->m_PreResumeSize = 0LL;
-  info->m_Progress = std::make_pair<int, QString>(0, "     0.0 Bytes/s ");
+  info->m_Progress = std::make_pair<int, QString>(0, "0.0 B/s ");
   info->m_ResumePos = 0;
   info->m_FileInfo = new ModRepositoryFileInfo(*fileInfo);
   info->m_Urls = URLs;
@@ -378,7 +378,7 @@ void DownloadManager::refreshList()
     }
 
     //if (m_ActiveDownloads.size() != downloadsBefore) {
-      qDebug("downloads after refresh: %d", m_ActiveDownloads.size());
+      qDebug("Downloads after refresh: %d", m_ActiveDownloads.size());
     //}
     emit update(-1);
 
@@ -400,7 +400,7 @@ bool DownloadManager::addDownload(const QStringList &URLs, QString gameName,
   }
 
   QUrl preferredUrl = QUrl::fromEncoded(URLs.first().toLocal8Bit());
-  qDebug("selected download url: %s", qPrintable(preferredUrl.toString()));
+  qDebug("selected download url: %s", qUtf8Printable(preferredUrl.toString()));
   QNetworkRequest request(preferredUrl);
   request.setHeader(QNetworkRequest::UserAgentHeader, m_NexusInterface->getAccessManager()->userAgent());
   return addDownload(m_NexusInterface->getAccessManager()->get(request), URLs, fileName, gameName, modID, fileID, fileInfo);
@@ -499,8 +499,8 @@ void DownloadManager::startDownload(QNetworkReply *reply, DownloadInfo *newDownl
     if (QFile::exists(m_OutputDirectory + "/" + newDownload->m_FileName)) {
       setState(newDownload, STATE_PAUSING);
       QCoreApplication::processEvents();
-      if (QMessageBox::question(nullptr, tr("Download again?"), tr("A file with the same name has already been downloaded. "
-          "Do you want to download it again? The new file will receive a different name."),
+      if (QMessageBox::question(nullptr, tr("Download again?"), tr("A file with the same name \"%1\" has already been downloaded. "
+          "Do you want to download it again? The new file will receive a different name.").arg(newDownload->m_FileName),
           QMessageBox::Yes | QMessageBox::No) == QMessageBox::No) {
         if (reply->isFinished())
           setState(newDownload, STATE_CANCELED);
@@ -540,9 +540,9 @@ void DownloadManager::addNXMDownload(const QString &url)
   QStringList validGames;
   validGames.append(m_ManagedGame->gameShortName());
   validGames.append(m_ManagedGame->validShortNames());
-  qDebug("add nxm download: %s", qPrintable(url));
+  qDebug("add nxm download: %s", qUtf8Printable(url));
   if (!validGames.contains(nxmInfo.game(), Qt::CaseInsensitive)) {
-    qDebug("download requested for wrong game (game: %s, url: %s)", qPrintable(m_ManagedGame->gameShortName()), qPrintable(nxmInfo.game()));
+    qDebug("download requested for wrong game (game: %s, url: %s)", qUtf8Printable(m_ManagedGame->gameShortName()), qUtf8Printable(nxmInfo.game()));
     QMessageBox::information(nullptr, tr("Wrong Game"), tr("The download link is for a mod for \"%1\" but this instance of MO "
     "has been set up for \"%2\".").arg(nxmInfo.game()).arg(m_ManagedGame->gameShortName()), QMessageBox::Ok);
     return;
@@ -550,7 +550,7 @@ void DownloadManager::addNXMDownload(const QString &url)
 
   for (auto tuple : m_PendingDownloads) {
     if (std::get<0>(tuple).compare(nxmInfo.game(), Qt::CaseInsensitive) == 0, std::get<1>(tuple) == nxmInfo.modId() && std::get<2>(tuple) == nxmInfo.fileId()) {
-      qDebug("download requested is already started (mod id: %s, file id: %s)", qPrintable(QString(nxmInfo.modId())), qPrintable(QString(nxmInfo.fileId())));
+      qDebug("download requested is already started (mod id: %s, file id: %s)", qUtf8Printable(QString(nxmInfo.modId())), qUtf8Printable(QString(nxmInfo.fileId())));
       QMessageBox::information(nullptr, tr("Already Started"), tr("A download for this mod file has already been queued."), QMessageBox::Ok);
       return;
     }
@@ -559,8 +559,8 @@ void DownloadManager::addNXMDownload(const QString &url)
   for (DownloadInfo *download : m_ActiveDownloads) {
     if (download->m_FileInfo->modID == nxmInfo.modId() && download->m_FileInfo->fileID == nxmInfo.fileId()) {
       if (download->m_State == STATE_DOWNLOADING || download->m_State == STATE_PAUSED || download->m_State == STATE_STARTED) {
-        qDebug("download requested is already started (mod: %s, file: %s)", qPrintable(QString(download->m_FileInfo->modID)),
-          qPrintable(download->m_FileInfo->fileName));
+        qDebug("download requested is already started (mod: %s, file: %s)", qUtf8Printable(QString(download->m_FileInfo->modID)),
+          qUtf8Printable(download->m_FileInfo->fileName));
 
         QMessageBox::information(nullptr, tr("Already Started"), tr("There is already a download started for this file (mod: %1, file: %2).")
           .arg(download->m_FileInfo->modName).arg(download->m_FileInfo->fileName), QMessageBox::Ok);
@@ -700,22 +700,18 @@ void DownloadManager::removeDownload(int index, bool deleteFile)
     emit aboutToUpdate();
 
     if (index < 0) {
-      DownloadState minState;
-      if (index == -3) {
-        minState = STATE_UNINSTALLED;
-      }
-      else
-			  minState = index == -1 ? STATE_READY : STATE_INSTALLED;
+      bool removeAll = (index == -1);
+      DownloadState removeState = (index == -2 ? STATE_INSTALLED : STATE_UNINSTALLED);
 
 			index = 0;
-			for (QVector<DownloadInfo*>::iterator iter = m_ActiveDownloads.begin(); iter != m_ActiveDownloads.end();) {
-				if ((*iter)->m_State >= minState) {
+      for (QVector<DownloadInfo*>::iterator iter = m_ActiveDownloads.begin(); iter != m_ActiveDownloads.end();) {
+        DownloadState downloadState = (*iter)->m_State;
+				if ((removeAll && (downloadState >= STATE_READY)) ||
+            (removeState == downloadState)) {
 					removeFile(index, deleteFile);
 					delete *iter;
 					iter = m_ActiveDownloads.erase(iter);
-          //QCoreApplication::processEvents();
-				}
-				else {
+				} else {
 					++iter;
 					++index;
 				}
@@ -818,7 +814,7 @@ void DownloadManager::resumeDownloadInt(int index)
     if (info->m_State == STATE_ERROR) {
       info->m_CurrentUrl = (info->m_CurrentUrl + 1) % info->m_Urls.count();
     }
-    qDebug("request resume from url %s", qPrintable(info->currentURL()));
+    qDebug("request resume from url %s", qUtf8Printable(info->currentURL()));
     QNetworkRequest request(QUrl::fromEncoded(info->currentURL().toLocal8Bit()));
     request.setHeader(QNetworkRequest::UserAgentHeader, m_NexusInterface->getAccessManager()->userAgent());
     if (info->m_State != STATE_ERROR) {
@@ -1338,7 +1334,7 @@ void DownloadManager::downloadProgress(qint64 bytesReceived, qint64 bytesTotal)
 
         QString unit;
         if (speed < 1000) {
-          unit = "Bytes/s";
+          unit = "B/s";
         }
         else if (speed < 1000*1024) {
           speed /= 1024;
@@ -1349,7 +1345,7 @@ void DownloadManager::downloadProgress(qint64 bytesReceived, qint64 bytesTotal)
           unit = "MB/s";
         }
 
-        info->m_Progress.second = QString::fromLatin1("%1% - %2 %3").arg(info->m_Progress.first).arg(speed, 8, 'f', 1,' ').arg(unit, -8, ' ');
+        info->m_Progress.second = QString::fromLatin1("%1% - %2 %3").arg(info->m_Progress.first).arg(QString::number(speed, 'f', 1)).arg(unit);
 
         TaskProgressManager::instance().updateProgress(info->m_TaskProgressId, bytesReceived, bytesTotal);
         emit update(index);
@@ -1438,7 +1434,7 @@ QDateTime DownloadManager::matchDate(const QString &timeString)
   if (m_DateExpression.exactMatch(timeString)) {
     return QDateTime::fromMSecsSinceEpoch(m_DateExpression.cap(1).toLongLong());
   } else {
-    qWarning("date not matched: %s", qPrintable(timeString));
+    qWarning("date not matched: %s", qUtf8Printable(timeString));
     return QDateTime::currentDateTime();
   }
 }
@@ -1776,7 +1772,7 @@ void DownloadManager::downloadError(QNetworkReply::NetworkError error)
 {
   if (error != QNetworkReply::OperationCanceledError) {
     QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
-    qWarning("%s (%d)", reply != nullptr ? qPrintable(reply->errorString())
+    qWarning("%s (%d)", reply != nullptr ? qUtf8Printable(reply->errorString())
                                          : "Download error occured",
              error);
   }
@@ -1834,11 +1830,12 @@ void DownloadManager::writeData(DownloadInfo *info)
   if (info != nullptr) {
     qint64 ret = info->m_Output.write(info->m_Reply->readAll());
     if (ret < info->m_Reply->size()) {
+      QString fileName = info->m_FileName; // m_FileName may be destroyed after setState
       setState(info, DownloadState::STATE_CANCELED);
       qCritical(QString("Unable to write download \"%2\" to drive (return %1)").arg(ret).arg(info->m_FileName).toLocal8Bit());
       reportError(tr("Unable to write download to drive (return %1).\n"
                      "Check the drive's available storage.\n\n"
-                     "Canceling download \"%2\"...").arg(ret).arg(info->m_FileName));
+                     "Canceling download \"%2\"...").arg(ret).arg(fileName));
     }
   }
 }

@@ -132,7 +132,8 @@ public:
 
   void saveArchiveList();
 
-  void registerPluginTool(MOBase::IPluginTool *tool);
+  void registerPluginTool(MOBase::IPluginTool *tool, QString name = QString(), QMenu *menu = nullptr);
+  void registerPluginTools(std::vector<MOBase::IPluginTool *> toolPlugins);
   void registerModPage(MOBase::IPluginModPage *modPage);
 
   void addPrimaryCategoryCandidates(QMenu *primaryCategoryMenu, ModInfo::Ptr info);
@@ -161,6 +162,7 @@ public slots:
   void displayColumnSelection(const QPoint &pos);
 
   void modorder_changed();
+  void esplist_changed();
   void refresher_progress(int percent);
   void directory_refreshed();
 
@@ -210,7 +212,7 @@ private:
 
   void startSteam();
 
-  void updateTo(QTreeWidgetItem *subTree, const std::wstring &directorySoFar, const MOShared::DirectoryEntry &directoryEntry, bool conflictsOnly);
+  void updateTo(QTreeWidgetItem *subTree, const std::wstring &directorySoFar, const MOShared::DirectoryEntry &directoryEntry, bool conflictsOnly, QIcon *fileIcon, QIcon *folderIcon);
   bool refreshProfiles(bool selectProfile = true);
   void refreshExecutablesList();
   void installMod(QString fileName = "");
@@ -244,11 +246,13 @@ private:
 
   bool populateMenuCategories(QMenu *menu, int targetID);
 
-  void updateDownloadListDelegate();
+  void initDownloadView();
+  void updateDownloadView();
 
   // remove invalid category-references from mods
   void fixCategories();
 
+  void createEndorseWidget();
   void createHelpWidget();
 
   bool extractProgress(QProgressDialog &extractProgress, int percentage, std::string fileName);
@@ -278,6 +282,8 @@ private:
   QString queryRestore(const QString &filePath);
 
   QMenu *modListContextMenu();
+  void addModSendToContextMenu(QMenu *menu);
+  void addPluginSendToContextMenu(QMenu *menu);
 
   QMenu *openFolderMenu();
 
@@ -293,6 +299,9 @@ private:
   void dropLocalFile(const QUrl &url, const QString &outputDir, bool move);
 
   bool registerWidgetState(const QString &name, QHeaderView *view, const char *oldSettingName = nullptr);
+
+  void sendSelectedModsToPriority(int newPriority);
+  void sendSelectedPluginsToPriority(int newPriority);
 
 private:
 
@@ -367,6 +376,8 @@ private:
 
   bool m_closing{ false };
 
+  bool m_showArchiveData{ true };
+
   std::vector<std::pair<QString, QHeaderView*>> m_PersistedGeometry;
 
   MOBase::DelayedFileWriter m_ArchiveListWriter;
@@ -394,6 +405,7 @@ private slots:
   void helpTriggered();
   void issueTriggered();
   void wikiTriggered();
+  void discordTriggered();
   void tutorialTriggered();
   void extractBSATriggered();
 
@@ -404,9 +416,13 @@ private slots:
   // modlist context menu
   void installMod_clicked();
   void createEmptyMod_clicked();
+  void createSeparator_clicked();
   void restoreBackup_clicked();
   void renameMod_clicked();
   void removeMod_clicked();
+  void setColor_clicked();
+  void resetColor_clicked();
+  void backupMod_clicked();
   void reinstallMod_clicked();
   void endorse_clicked();
   void dontendorse_clicked();
@@ -416,9 +432,15 @@ private slots:
   void visitOnNexus_clicked();
   void visitWebPage_clicked();
   void openExplorer_clicked();
+  void openOriginExplorer_clicked();
+  void openOriginInformation_clicked();
   void information_clicked();
   void enableSelectedMods_clicked();
   void disableSelectedMods_clicked();
+  void sendSelectedModsToTop_clicked();
+  void sendSelectedModsToBottom_clicked();
+  void sendSelectedModsToPriority_clicked();
+  void sendSelectedModsToSeparator_clicked();
   // savegame context menu
   void deleteSavegame_clicked();
   void fixMods_clicked(SaveGameInfo::MissingAssets const &missingAssets);
@@ -433,6 +455,9 @@ private slots:
   // pluginlist context menu
   void enableSelectedPlugins_clicked();
   void disableSelectedPlugins_clicked();
+  void sendSelectedPluginsToTop_clicked();
+  void sendSelectedPluginsToBottom_clicked();
+  void sendSelectedPluginsToPriority_clicked();
 
   void linkToolbar();
   void linkDesktop();
@@ -446,6 +471,14 @@ private slots:
   BSA::EErrorCode extractBSA(BSA::Archive &archive, BSA::Folder::Ptr folder, const QString &destination, QProgressDialog &extractProgress);
 
   void createModFromOverwrite();
+  /**
+   * @brief sends the content of the overwrite folder to an already existing mod
+   */
+  void moveOverwriteContentToExistingMod();
+  /**
+   * @brief actually sends the content of the overwrite folder to specified mod
+   */
+  void doMoveOverwriteContentToMod(const QString &modAbsolutePath);
   void clearOverwrite();
 
   void procError(QProcess::ProcessError error);
@@ -462,6 +495,7 @@ private slots:
 
   void motdReceived(const QString &motd);
   void notEndorsedYet();
+  void wontEndorse();
 
   void originModified(int originID);
 
@@ -495,6 +529,7 @@ private slots:
 
   void resumeDownload(int downloadIndex);
   void endorseMod(ModInfo::Ptr mod);
+  void unendorseMod(ModInfo::Ptr mod);
   void cancelModListEditor();
 
   void lockESPIndex();
@@ -510,6 +545,7 @@ private slots:
   void openDownloadsFolder();
   void openModsFolder();
   void openProfileFolder();
+  void openIniFolder();
   void openGameFolder();
   void openMyGamesFolder();
   void startExeAction();
@@ -523,6 +559,7 @@ private slots:
   void updateStyle(const QString &style);
 
   void modlistChanged(const QModelIndex &index, int role);
+  void modlistChanged(const QModelIndexList &indicies, int role);
   void fileMoved(const QString &filePath, const QString &oldOriginName, const QString &newOriginName);
 
 
@@ -557,9 +594,16 @@ private slots:
 
   void modlistSelectionChanged(const QModelIndex &current, const QModelIndex &previous);
   void modListSortIndicatorChanged(int column, Qt::SortOrder order);
+  void modListSectionResized(int logicalIndex, int oldSize, int newSize);
 
   void modlistSelectionsChanged(const QItemSelection &current);
   void esplistSelectionsChanged(const QItemSelection &current);
+
+  void search_activated();
+  void searchClear_activated();
+
+  void updateModCount();
+  void updatePluginCount();
 
 private slots: // ui slots
   // actions
@@ -575,12 +619,15 @@ private slots: // ui slots
   void on_bsaList_customContextMenuRequested(const QPoint &pos);
   void on_clearFiltersButton_clicked();
   void on_btnRefreshData_clicked();
+  void on_btnRefreshDownloads_clicked();
   void on_categoriesList_customContextMenuRequested(const QPoint &pos);
   void on_conflictsCheckBox_toggled(bool checked);
+  void on_showArchiveDataCheckBox_toggled(bool checked);
   void on_dataTree_customContextMenuRequested(const QPoint &pos);
   void on_executablesListBox_currentIndexChanged(int index);
   void on_modList_customContextMenuRequested(const QPoint &pos);
   void on_modList_doubleClicked(const QModelIndex &index);
+  void on_listOptionsBtn_pressed();
   void on_espList_doubleClicked(const QModelIndex &index);
   void on_profileBox_currentIndexChanged(int index);
   void on_savegameList_customContextMenuRequested(const QPoint &pos);

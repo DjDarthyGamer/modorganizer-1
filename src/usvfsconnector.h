@@ -27,7 +27,9 @@ along with Mod Organizer.  If not, see <http://www.gnu.org/licenses/>.
 #include <QThread>
 #include <QFile>
 #include <QDebug>
+#include <QList>
 #include <usvfsparameters.h>
+#include "executableinfo.h"
 
 
 class LogWorker : public QThread {
@@ -82,7 +84,8 @@ public:
   ~UsvfsConnector();
 
   void updateMapping(const MappingType &mapping);
-  void updateParams(int logLevel, int crashDumpsType);
+  void updateParams(int logLevel, int crashDumpsType, QString executableBlacklist);
+  void updateForcedLibraries(const QList<MOBase::ExecutableForcedLoadSetting> &forcedLibraries);
 
 private:
 

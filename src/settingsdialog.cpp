@@ -36,6 +36,8 @@ along with Mod Organizer.  If not, see <http://www.gnu.org/licenses/>.
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QShortcut>
+#include <QColorDialog>
+#include <QInputDialog>
 #include <QJsonDocument>
 #include <QDesktopServices>
 
@@ -45,7 +47,6 @@ along with Mod Organizer.  If not, see <http://www.gnu.org/licenses/>.
 
 using namespace MOBase;
 
-
 SettingsDialog::SettingsDialog(PluginContainer *pluginContainer, QWidget *parent)
   : TutorableDialog("SettingsDialog", parent)
   , ui(new Ui::SettingsDialog)
@@ -53,6 +54,7 @@ SettingsDialog::SettingsDialog(PluginContainer *pluginContainer, QWidget *parent
   , m_nexusLogin(new QWebSocket)
 {
   ui->setupUi(this);
+  ui->pluginSettingsList->setStyleSheet("QTreeWidget::item {padding-right: 10px;}");
 
   QShortcut *delShortcut
       = new QShortcut(QKeySequence(Qt::Key_Delete), ui->pluginBlacklist);
@@ -66,6 +68,33 @@ SettingsDialog::~SettingsDialog()
 {
   delete ui;
 }
+
+QString SettingsDialog::getColoredButtonStyleSheet() const
+{
+  return QString("QPushButton {"
+    "background-color: %1;"
+    "color: %2;"
+    "border: 1px solid;"
+    "padding: 3px;"
+    "}");
+}
+
+void SettingsDialog::setButtonColor(QPushButton *button, QColor &color)
+{
+  button->setStyleSheet(
+    QString("QPushButton {"
+      "background-color: rgba(%1, %2, %3, %4);"
+      "color: %5;"
+      "border: 1px solid;"
+      "padding: 3px;"
+      "}")
+    .arg(color.red())
+    .arg(color.green())
+    .arg(color.blue())
+    .arg(color.alpha())
+    .arg(Settings::getIdealTextColor(color).name())
+    );
+};
 
 void SettingsDialog::accept()
 {
@@ -90,6 +119,10 @@ void SettingsDialog::accept()
   TutorableDialog::accept();
 }
 
+bool SettingsDialog::getResetGeometries()
+{
+  return ui->resetGeometryBtn->isChecked();
+}
 
 void SettingsDialog::on_loginCheckBox_toggled(bool checked)
 {
@@ -109,6 +142,32 @@ void SettingsDialog::on_categoriesBtn_clicked()
   CategoriesDialog dialog(this);
   if (dialog.exec() == QDialog::Accepted) {
     dialog.commitChanges();
+  }
+}
+
+void SettingsDialog::on_execBlacklistBtn_clicked()
+{
+  bool ok = false;
+  QString result = QInputDialog::getMultiLineText(
+    this,
+    tr("Executables Blacklist"),
+    tr("Enter one executable per line to be blacklisted from the virtual file system.\n"
+       "Mods and other virtualized files will not be visible to these executables and\n"
+       "any executables launched by them.\n\n"
+       "Example:\n"
+       "    Chrome.exe\n"
+       "    Firefox.exe"),
+    m_ExecutableBlacklist.split(";").join("\n"),
+    &ok
+    );
+  if (ok) {
+    QStringList blacklist;
+    for (auto exec : result.split("\n")) {
+      if (exec.trimmed().endsWith(".exe", Qt::CaseInsensitive)) {
+        blacklist << exec.trimmed();
+      }
+    }
+    m_ExecutableBlacklist = blacklist.join(";");
   }
 }
 
@@ -186,6 +245,87 @@ void SettingsDialog::on_browseOverwriteDirBtn_clicked()
   }
 }
 
+void SettingsDialog::on_browseGameDirBtn_clicked()
+{
+  QFileInfo oldGameExe(ui->managedGameDirEdit->text());
+
+  QString temp = QFileDialog::getOpenFileName(this, tr("Select game executable"), oldGameExe.absolutePath(), oldGameExe.fileName());
+  if (!temp.isEmpty()) {
+    ui->managedGameDirEdit->setText(temp);
+  }
+}
+
+void SettingsDialog::on_containsBtn_clicked()
+{
+  QColor result = QColorDialog::getColor(m_ContainsColor, this, "Color Picker: Mod contains selected plugin", QColorDialog::ShowAlphaChannel);
+  if (result.isValid()) {
+    m_ContainsColor = result;
+    setButtonColor(ui->containsBtn, result);
+  }
+}
+
+void SettingsDialog::on_containedBtn_clicked()
+{
+  QColor result = QColorDialog::getColor(m_ContainedColor, this, "ColorPicker: Plugin is Contained in selected Mod", QColorDialog::ShowAlphaChannel);
+  if (result.isValid()) {
+    m_ContainedColor = result;
+    setButtonColor(ui->containedBtn, result);
+  }
+}
+
+void SettingsDialog::on_overwrittenBtn_clicked()
+{
+  QColor result = QColorDialog::getColor(m_OverwrittenColor, this, "ColorPicker: Is overwritten (loose files)", QColorDialog::ShowAlphaChannel);
+  if (result.isValid()) {
+    m_OverwrittenColor = result;
+    setButtonColor(ui->overwrittenBtn, result);
+  }
+}
+
+void SettingsDialog::on_overwritingBtn_clicked()
+{
+  QColor result = QColorDialog::getColor(m_OverwritingColor, this, "ColorPicker: Is overwriting (loose files)", QColorDialog::ShowAlphaChannel);
+  if (result.isValid()) {
+    m_OverwritingColor = result;
+    setButtonColor(ui->overwritingBtn, result);
+  }
+}
+
+void SettingsDialog::on_overwrittenArchiveBtn_clicked()
+{
+  QColor result = QColorDialog::getColor(m_OverwrittenArchiveColor, this, "ColorPicker: Is overwritten (archive files)", QColorDialog::ShowAlphaChannel);
+  if (result.isValid()) {
+    m_OverwrittenArchiveColor = result;
+    setButtonColor(ui->overwrittenArchiveBtn, result);
+  }
+}
+
+void SettingsDialog::on_overwritingArchiveBtn_clicked()
+{
+  QColor result = QColorDialog::getColor(m_OverwritingArchiveColor, this, "ColorPicker: Is overwriting (archive files)", QColorDialog::ShowAlphaChannel);
+  if (result.isValid()) {
+    m_OverwritingArchiveColor = result;
+    setButtonColor(ui->overwritingArchiveBtn, result);
+  }
+}
+
+void SettingsDialog::on_resetColorsBtn_clicked()
+{
+  m_OverwritingColor = QColor(255, 0, 0, 64);
+  m_OverwrittenColor = QColor(0, 255, 0, 64);
+  m_OverwritingArchiveColor = QColor(255, 0, 255, 64);
+  m_OverwrittenArchiveColor = QColor(0, 255, 255, 64);
+  m_ContainsColor = QColor(0, 0, 255, 64);
+  m_ContainedColor = QColor(0, 0, 255, 64);
+
+  setButtonColor(ui->overwritingBtn, m_OverwritingColor);
+  setButtonColor(ui->overwrittenBtn, m_OverwrittenColor);
+  setButtonColor(ui->overwritingArchiveBtn, m_OverwritingArchiveColor);
+  setButtonColor(ui->overwrittenArchiveBtn, m_OverwrittenArchiveColor);
+  setButtonColor(ui->containsBtn, m_ContainsColor);
+  setButtonColor(ui->containedBtn, m_ContainedColor);
+}
+
 void SettingsDialog::on_resetDialogsButton_clicked()
 {
   if (QMessageBox::question(this, tr("Confirm?"),
@@ -231,7 +371,7 @@ void SettingsDialog::completeApiConnection()
 void SettingsDialog::storeSettings(QListWidgetItem *pluginItem)
 {
   if (pluginItem != nullptr) {
-    QMap<QString, QVariant> settings = pluginItem->data(Qt::UserRole + 1).toMap();
+    QVariantMap settings = pluginItem->data(Qt::UserRole + 1).toMap();
 
     for (int i = 0; i < ui->pluginSettingsList->topLevelItemCount(); ++i) {
       const QTreeWidgetItem *item = ui->pluginSettingsList->topLevelItem(i);
@@ -252,8 +392,8 @@ void SettingsDialog::on_pluginsList_currentItemChanged(QListWidgetItem *current,
   ui->versionLabel->setText(plugin->version().canonicalString());
   ui->descriptionLabel->setText(plugin->description());
 
-  QMap<QString, QVariant> settings = current->data(Qt::UserRole + 1).toMap();
-  QMap<QString, QVariant> descriptions = current->data(Qt::UserRole + 2).toMap();
+  QVariantMap settings = current->data(Qt::UserRole + 1).toMap();
+  QVariantMap descriptions = current->data(Qt::UserRole + 2).toMap();
   ui->pluginSettingsList->setEnabled(settings.count() != 0);
   for (auto iter = settings.begin(); iter != settings.end(); ++iter) {
     QTreeWidgetItem *newItem = new QTreeWidgetItem(QStringList(iter.key()));
@@ -274,6 +414,9 @@ void SettingsDialog::on_pluginsList_currentItemChanged(QListWidgetItem *current,
     newItem->setFlags(newItem->flags() | Qt::ItemIsEditable);
     ui->pluginSettingsList->addTopLevelItem(newItem);
   }
+
+  ui->pluginSettingsList->resizeColumnToContents(0);
+  ui->pluginSettingsList->resizeColumnToContents(1);
 }
 
 void SettingsDialog::deleteBlacklistItem()
@@ -292,3 +435,41 @@ void SettingsDialog::on_clearCacheButton_clicked()
   NexusInterface::instance(m_PluginContainer)->clearCache();
 }
 
+void SettingsDialog::normalizePath(QLineEdit *lineEdit)
+{
+  QString text = lineEdit->text();
+  while (text.endsWith('/') || text.endsWith('\\')) {
+    text.chop(1);
+  }
+  lineEdit->setText(text);
+}
+
+void SettingsDialog::on_baseDirEdit_editingFinished()
+{
+  normalizePath(ui->baseDirEdit);
+}
+
+void SettingsDialog::on_downloadDirEdit_editingFinished()
+{
+  normalizePath(ui->downloadDirEdit);
+}
+
+void SettingsDialog::on_modDirEdit_editingFinished()
+{
+  normalizePath(ui->modDirEdit);
+}
+
+void SettingsDialog::on_cacheDirEdit_editingFinished()
+{
+  normalizePath(ui->cacheDirEdit);
+}
+
+void SettingsDialog::on_profilesDirEdit_editingFinished()
+{
+  normalizePath(ui->profilesDirEdit);
+}
+
+void SettingsDialog::on_overwriteDirEdit_editingFinished()
+{
+  normalizePath(ui->overwriteDirEdit);
+}

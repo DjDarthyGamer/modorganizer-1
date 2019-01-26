@@ -191,7 +191,7 @@ void ProfilesDialog::on_removeProfileButton_clicked()
     return;
   }
 
-  QMessageBox confirmBox(QMessageBox::Question, tr("Confirm"), tr("Are you sure you want to remove this profile (including local savegames if any)?"),
+  QMessageBox confirmBox(QMessageBox::Question, tr("Confirm"), tr("Are you sure you want to remove this profile (including profile-specific save games, if any)?"),
                          QMessageBox::Yes | QMessageBox::No, this);
 
   if (confirmBox.exec() == QMessageBox::Yes) {
@@ -214,7 +214,7 @@ void ProfilesDialog::on_removeProfileButton_clicked()
       delete item;
     }
     if (!shellDelete(QStringList(profilePath))) {
-      qWarning("Failed to shell-delete \"%s\" (errorcode %lu), trying regular delete", qPrintable(profilePath), ::GetLastError());
+      qWarning("Failed to shell-delete \"%s\" (errorcode %lu), trying regular delete", qUtf8Printable(profilePath), ::GetLastError());
       if (!removeDir(profilePath)) {
         qWarning("regular delete failed too");
       }

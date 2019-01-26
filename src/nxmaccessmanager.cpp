@@ -101,7 +101,7 @@ void NXMAccessManager::showCookies() const
   for (const QNetworkCookie &cookie : cookieJar()->cookiesForUrl(url)) {
     qDebug("%s - %s (expires: %s)",
            cookie.name().constData(), cookie.value().constData(),
-           qPrintable(cookie.expirationDate().toString()));
+           qUtf8Printable(cookie.expirationDate().toString()));
   }
 }
 
@@ -245,7 +245,7 @@ void NXMAccessManager::validateFinished()
     m_ProgressDialog->deleteLater();
     m_ProgressDialog = nullptr;
   }
-  
+
   if (m_ValidateReply != nullptr) {
     QJsonDocument jdoc = QJsonDocument::fromJson(m_ValidateReply->readAll());
     QJsonObject credentialsData = jdoc.object();

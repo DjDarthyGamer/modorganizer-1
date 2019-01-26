@@ -65,13 +65,13 @@
               <widget class="QTreeWidget" name="categoriesList">
                <property name="minimumSize">
                 <size>
-                 <width>100</width>
+                 <width>120</width>
                  <height>0</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>161</width>
+                 <width>214</width>
                  <height>16777215</height>
                 </size>
                </property>
@@ -83,6 +83,9 @@
                </property>
                <property name="indentation">
                 <number>0</number>
+               </property>
+               <property name="uniformRowHeights">
+                <bool>true</bool>
                </property>
                <attribute name="headerVisible">
                 <bool>false</bool>
@@ -176,7 +179,7 @@
              <number>2</number>
             </property>
             <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_6" stretch="0,1,0,0,0,0,0">
+             <layout class="QHBoxLayout" name="horizontalLayout_6" stretch="0,1,0,0,0,0,0,0,0">
               <item>
                <widget class="QLabel" name="label_3">
                 <property name="sizePolicy">
@@ -289,6 +292,35 @@ p, li { white-space: pre-wrap; }
                 <property name="icon">
                  <iconset resource="resources.qrc">
                   <normaloff>:/MO/gui/backup</normaloff>:/MO/gui/backup</iconset>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="activeModslabel">
+                <property name="text">
+                 <string>Active:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="LCDNumber" name="activeModsCounter">
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>26</height>
+                 </size>
+                </property>
+                <property name="whatsThis">
+                 <string>This provides statistics about the mod list.  The total number of active mod is normally displayed.  Other statistics may be accessed with the tooltip of this counter.</string>
+                </property>
+                <property name="frameShadow">
+                 <enum>QFrame::Sunken</enum>
+                </property>
+                <property name="digitCount">
+                 <number>5</number>
+                </property>
+                <property name="segmentStyle">
+                 <enum>QLCDNumber::Flat</enum>
                 </property>
                </widget>
               </item>
@@ -432,6 +464,9 @@ p, li { white-space: pre-wrap; }
               <property name="indentation">
                <number>20</number>
               </property>
+              <property name="uniformRowHeights">
+               <bool>true</bool>
+              </property>
               <property name="itemsExpandable">
                <bool>true</bool>
               </property>
@@ -442,7 +477,7 @@ p, li { white-space: pre-wrap; }
                <bool>false</bool>
               </property>
               <attribute name="headerDefaultSectionSize">
-               <number>20</number>
+               <number>35</number>
               </attribute>
               <attribute name="headerShowSortIndicator" stdset="0">
                <bool>true</bool>
@@ -606,7 +641,7 @@ p, li { white-space: pre-wrap; }
                  </size>
                 </property>
                 <property name="placeholderText">
-                 <string>Namefilter</string>
+                 <string>Filter</string>
                 </property>
                </widget>
               </item>
@@ -884,6 +919,35 @@ p, li { white-space: pre-wrap; }
                     </property>
                    </widget>
                   </item>
+                  <item>
+                   <widget class="QLabel" name="activePluginsLabel">
+                    <property name="text">
+                     <string>Active:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="LCDNumber" name="activePluginsCounter">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>26</height>
+                     </size>
+                    </property>
+                    <property name="whatsThis">
+                     <string>This provides statistics about the plugin list.  The total number of active plugins is normally displayed.  Other statistics may be accessed with the tooltip of this counter.</string>
+                    </property>
+                    <property name="frameShadow">
+                     <enum>QFrame::Sunken</enum>
+                    </property>
+                    <property name="digitCount">
+                     <number>4</number>
+                    </property>
+                    <property name="segmentStyle">
+                     <enum>QLCDNumber::Flat</enum>
+                    </property>
+                   </widget>
+                  </item>
                  </layout>
                 </item>
                 <item>
@@ -996,7 +1060,7 @@ p, li { white-space: pre-wrap; }
                      <string/>
                     </property>
                     <property name="placeholderText">
-                     <string>Namefilter</string>
+                     <string>Filter</string>
                     </property>
                    </widget>
                   </item>
@@ -1073,6 +1137,11 @@ p, li { white-space: pre-wrap; }
                   <property name="columnCount" stdset="0">
                    <number>1</number>
                   </property>
+                  <column>
+                   <property name="text">
+                    <string notr="true">Archives</string>
+                   </property>
+                  </column>
                  </widget>
                 </item>
                </layout>
@@ -1121,6 +1190,9 @@ p, li { white-space: pre-wrap; }
                     <property name="whatsThis">
                      <string>This is an overview of your data directory as visible to the game (and tools). </string>
                     </property>
+                    <property name="uniformRowHeights">
+                     <bool>true</bool>
+                    </property>
                     <property name="animated">
                      <bool>true</bool>
                     </property>
@@ -1142,17 +1214,37 @@ p, li { white-space: pre-wrap; }
                  </layout>
                 </item>
                 <item>
-                 <widget class="QCheckBox" name="conflictsCheckBox">
-                  <property name="toolTip">
-                   <string>Filter the above list so that only conflicts are displayed.</string>
-                  </property>
-                  <property name="whatsThis">
-                   <string>Filter the above list so that only conflicts are displayed.</string>
-                  </property>
-                  <property name="text">
-                   <string>Show only conflicts</string>
-                  </property>
-                 </widget>
+                 <layout class="QHBoxLayout" name="horizontalLayout_12">
+                  <item>
+                   <widget class="QCheckBox" name="conflictsCheckBox">
+                    <property name="toolTip">
+                     <string>Filters the above list so that only conflicts are displayed.</string>
+                    </property>
+                    <property name="whatsThis">
+                     <string>Filters the above list so that only conflicts are displayed.</string>
+                    </property>
+                    <property name="text">
+                     <string>Show only conflicts</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QCheckBox" name="showArchiveDataCheckBox">
+                    <property name="toolTip">
+                     <string>Filters the above list so that files from archives are not shown</string>
+                    </property>
+                    <property name="statusTip">
+                     <string/>
+                    </property>
+                    <property name="whatsThis">
+                     <string>Filters the above list so that files from archives are not shown</string>
+                    </property>
+                    <property name="text">
+                     <string>Show files from Archives</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
                 </item>
                </layout>
               </widget>
@@ -1186,7 +1278,7 @@ p, li { white-space: pre-wrap; }
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;This is a list of all savegames for this game. Hover over a list entry to get detailed information about the save including a list of esps/esms that were used at the time this save was created but aren't active now.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;This is a list of all save games for this game. Hover over a list entry to get detailed information about the save including a list of esps/esms that were used at the time this save was created but aren't active now.&lt;/span&gt;&lt;/p&gt;
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:8pt;&quot;&gt;&lt;/p&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;If you click &amp;quot;Fix Mods...&amp;quot; in the context menu, MO will try to activate all mods and esps to fix those missing esps. It will not disable anything!&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                   </property>
@@ -1218,9 +1310,23 @@ p, li { white-space: pre-wrap; }
                  <number>2</number>
                 </property>
                 <item>
+                 <widget class="QPushButton" name="btnRefreshDownloads">
+                  <property name="toolTip">
+                   <string>Refresh downloads view</string>
+                  </property>
+                  <property name="text">
+                   <string>Refresh</string>
+                  </property>
+                  <property name="icon">
+                   <iconset resource="resources.qrc">
+                    <normaloff>:/MO/gui/resources/view-refresh.png</normaloff>:/MO/gui/resources/view-refresh.png</iconset>
+                  </property>
+                 </widget>
+                </item>
+                <item>
                  <layout class="QVBoxLayout" name="downloadLayout">
                   <item>
-                   <widget class="QTreeView" name="downloadView">
+                   <widget class="DownloadListWidget" name="downloadView">
                     <property name="minimumSize">
                      <size>
                       <width>320</width>
@@ -1228,7 +1334,7 @@ p, li { white-space: pre-wrap; }
                      </size>
                     </property>
                     <property name="contextMenuPolicy">
-                     <enum>Qt::PreventContextMenu</enum>
+                     <enum>Qt::CustomContextMenu</enum>
                     </property>
                     <property name="acceptDrops">
                      <bool>true</bool>
@@ -1242,9 +1348,6 @@ p, li { white-space: pre-wrap; }
                     <property name="verticalScrollBarPolicy">
                      <enum>Qt::ScrollBarAlwaysOn</enum>
                     </property>
-                    <property name="horizontalScrollBarPolicy">
-                      <enum>Qt::ScrollBarAsNeeded</enum>
-                    </property>
                     <property name="dragEnabled">
                      <bool>true</bool>
                     </property>
@@ -1256,12 +1359,6 @@ p, li { white-space: pre-wrap; }
                     </property>
                     <property name="alternatingRowColors">
                      <bool>true</bool>
-                    </property>
-                    <property name="selectionMode">
-                     <enum>QAbstractItemView::SingleSelection</enum>
-                    </property>
-                    <property name="selectionBehavior">
-                     <enum>QAbstractItemView::SelectRows</enum>
                     </property>
                     <property name="verticalScrollMode">
                      <enum>QAbstractItemView::ScrollPerPixel</enum>
@@ -1275,15 +1372,6 @@ p, li { white-space: pre-wrap; }
                     <property name="sortingEnabled">
                      <bool>true</bool>
                     </property>
-                    <attribute name="headerDefaultSectionSize">
-                     <number>50</number>
-                    </attribute>
-					<attribute name="headerMinimumSectionSize">
-                     <number>15</number>
-                    </attribute>
-                    <attribute name="headerStretchLastSection">
-                     <bool>true</bool>
-                    </attribute>
                    </widget>
                   </item>
                  </layout>
@@ -1313,7 +1401,7 @@ p, li { white-space: pre-wrap; }
                   <item>
                    <widget class="MOBase::LineEditClear" name="downloadFilterEdit">
                     <property name="placeholderText">
-                     <string>Namefilter</string>
+                     <string>Filter</string>
                     </property>
                    </widget>
                   </item>
@@ -1335,6 +1423,9 @@ p, li { white-space: pre-wrap; }
        </property>
        <property name="selectionMode">
         <enum>QAbstractItemView::NoSelection</enum>
+       </property>
+       <property name="uniformRowHeights">
+        <bool>true</bool>
        </property>
        <property name="itemsExpandable">
         <bool>false</bool>
@@ -1591,6 +1682,16 @@ Right now this has very limited functionality</string>
    <class>PluginListView</class>
    <extends>QTreeView</extends>
    <header>pluginlistview.h</header>
+  </customwidget>
+  <customwidget>
+   <class>LCDNumber</class>
+   <extends>QLCDNumber</extends>
+   <header>lcdnumber.h</header>
+  </customwidget>
+  <customwidget>
+   <class>DownloadListWidget</class>
+   <extends>QTreeView</extends>
+   <header>downloadlistwidget.h</header>
   </customwidget>
  </customwidgets>
  <resources>

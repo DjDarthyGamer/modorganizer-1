@@ -112,9 +112,10 @@ ModInfoDialog::ModInfoDialog(ModInfo::Ptr modInfo, const DirectoryEntry *directo
   }
   ui->sourceGameEdit->setCurrentIndex(ui->sourceGameEdit->findData(gameName));
 
+  ui->commentsEdit->setText(modInfo->comments());
   ui->notesEdit->setText(modInfo->notes());
 
-  ui->descriptionView->setPage(new DescriptionPage);
+  ui->descriptionView->setPage(new DescriptionPage());
 
   connect(&m_ThumbnailMapper, SIGNAL(mapped(const QString&)), this, SIGNAL(thumbnailClickedSignal(const QString&)));
   connect(this, SIGNAL(thumbnailClickedSignal(const QString&)), this, SLOT(thumbnailClicked(const QString&)));
@@ -134,7 +135,22 @@ ModInfoDialog::ModInfoDialog(ModInfo::Ptr modInfo, const DirectoryEntry *directo
 
   refreshLists();
 
-  if (unmanaged) {
+  if (modInfo->hasFlag(ModInfo::FLAG_SEPARATOR))
+  {
+    ui->tabWidget->setTabEnabled(TAB_TEXTFILES, false);
+    ui->tabWidget->setTabEnabled(TAB_INIFILES, false);
+    ui->tabWidget->setTabEnabled(TAB_IMAGES, false);
+    ui->tabWidget->setTabEnabled(TAB_ESPS, false);
+    ui->tabWidget->setTabEnabled(TAB_CONFLICTS, false);
+    //ui->tabWidget->setTabEnabled(TAB_CATEGORIES, false);
+    addCategories(CategoryFactory::instance(), modInfo->getCategories(), ui->categoriesTree->invisibleRootItem(), 0);
+    refreshPrimaryCategoriesBox();
+    ui->tabWidget->setTabEnabled(TAB_NEXUS, false);
+    //ui->tabWidget->setTabEnabled(TAB_NOTES, false);
+    ui->tabWidget->setTabEnabled(TAB_FILETREE, false);
+  }
+  else if (unmanaged)
+  {
     ui->tabWidget->setTabEnabled(TAB_INIFILES, false);
     ui->tabWidget->setTabEnabled(TAB_CATEGORIES, false);
     ui->tabWidget->setTabEnabled(TAB_NEXUS, false);
@@ -155,10 +171,8 @@ ModInfoDialog::ModInfoDialog(ModInfo::Ptr modInfo, const DirectoryEntry *directo
 
   ui->tabWidget->setTabEnabled(TAB_CONFLICTS, m_Origin != nullptr);
 
-  if (ui->tabWidget->currentIndex() == TAB_NEXUS) {
-    activateNexusTab();
-  }
 
+  ui->endorseBtn->setVisible(Settings::instance().endorsementIntegration());
   ui->endorseBtn->setEnabled((m_ModInfo->endorsedState() == ModInfo::ENDORSED_FALSE) ||
                              (m_ModInfo->endorsedState() == ModInfo::ENDORSED_NEVER));
 
@@ -169,12 +183,21 @@ ModInfoDialog::ModInfoDialog(ModInfo::Ptr modInfo, const DirectoryEntry *directo
       break;
     }
   }
+
+  if (ui->tabWidget->currentIndex() == TAB_NEXUS) {
+    activateNexusTab();
+  }
 }
 
 
 ModInfoDialog::~ModInfoDialog()
 {
-  m_ModInfo->setNotes(ui->notesEdit->toPlainText());
+  m_ModInfo->setComments(ui->commentsEdit->text());
+  //Avoid saving html stump if notes field is empty.
+  if (ui->notesEdit->toPlainText().isEmpty())
+    m_ModInfo->setNotes(ui->notesEdit->toPlainText());
+  else
+    m_ModInfo->setNotes(ui->notesEdit->toHtml());
   saveCategories(ui->categoriesTree->invisibleRootItem());
   saveIniTweaks(); // ini tweaks are written to the ini file directly. This is the only information not managed by ModInfo
   delete ui->descriptionView->page();
@@ -295,10 +318,10 @@ void ModInfoDialog::refreshLists()
       QString fileName = relativeName.mid(0).prepend(m_RootPath);
       bool archive;
       if ((*iter)->getOrigin(archive) == m_Origin->getID()) {
-        std::vector<std::pair<int, std::wstring>> alternatives = (*iter)->getAlternatives();
+        std::vector<std::pair<int, std::pair<std::wstring, int>>> alternatives = (*iter)->getAlternatives();
         if (!alternatives.empty()) {
           std::wostringstream altString;
-          for (std::vector<std::pair<int, std::wstring>>::iterator altIter = alternatives.begin();
+          for (std::vector<std::pair<int, std::pair<std::wstring, int>>>::iterator altIter = alternatives.begin();
                altIter != alternatives.end(); ++altIter) {
             if (altIter != alternatives.begin()) {
               altString << ", ";
@@ -307,11 +330,18 @@ void ModInfoDialog::refreshLists()
           }
           QStringList fields(relativeName.prepend("..."));
           fields.append(ToQString(altString.str()));
-          QTreeWidgetItem *item = new QTreeWidgetItem(fields);
+
+          QTreeWidgetItem *item = new QTreeWidgetItem(fields);        
           item->setData(0, Qt::UserRole, fileName);
-          item->setData(1, Qt::UserRole, ToQString(m_Directory->getOriginByID(alternatives.begin()->first).getName()));
-          item->setData(1, Qt::UserRole + 1, alternatives.begin()->first);
+          item->setData(1, Qt::UserRole, ToQString(m_Directory->getOriginByID(alternatives.back().first).getName()));
+          item->setData(1, Qt::UserRole + 1, alternatives.back().first);
           item->setData(1, Qt::UserRole + 2, archive);
+          if (archive) {
+            QFont font = item->font(0);
+            font.setItalic(true);
+            item->setFont(0, font);
+            item->setFont(1, font);
+          }
           ui->overwriteTree->addTopLevelItem(item);
           ++numOverwrite;
         } else {// otherwise don't display the file
@@ -325,6 +355,12 @@ void ModInfoDialog::refreshLists()
         item->setData(0, Qt::UserRole, fileName);
         item->setData(1, Qt::UserRole, ToQString(realOrigin.getName()));
         item->setData(1, Qt::UserRole + 2, archive);
+        if (archive) {
+          QFont font = item->font(0);
+          font.setItalic(true);
+          item->setFont(0, font);
+          item->setFont(1, font);
+        }
         ui->overwrittenTree->addTopLevelItem(item);
         ++numOverwritten;
       }
@@ -539,6 +575,7 @@ void ModInfoDialog::openIniFile(const QString &fileName)
 
 void ModInfoDialog::saveIniTweaks()
 {
+  m_Settings->remove("INI Tweaks");
   m_Settings->beginWriteArray("INI Tweaks");
 
   int countEnabled = 0;
@@ -901,12 +938,13 @@ void ModInfoDialog::activateNexusTab()
   QLineEdit *versionEdit = findChild<QLineEdit*>("versionEdit");
   QString currentVersion = m_Settings->value("version", "0.0").toString();
   versionEdit->setText(currentVersion);
+  ui->customUrlLineEdit->setText(m_ModInfo->getURL());
 }
 
 
 void ModInfoDialog::on_tabWidget_currentChanged(int index)
 {
-  if (m_RealTabPos[index] == TAB_NEXUS) {
+  if (index == TAB_NEXUS || m_RealTabPos[index] == TAB_NEXUS) {
     activateNexusTab();
   }
 }
@@ -944,6 +982,10 @@ void ModInfoDialog::on_versionEdit_editingFinished()
   updateVersionColor();
 }
 
+void ModInfoDialog::on_customUrlLineEdit_editingFinished()
+{
+  m_ModInfo->setURL(ui->customUrlLineEdit->text());
+}
 
 bool ModInfoDialog::recursiveDelete(const QModelIndex &index)
 {
@@ -1080,7 +1122,7 @@ void ModInfoDialog::openFile(const QModelIndex &index)
   QString fileName = m_FileSystemModel->filePath(index);
 
   HINSTANCE res = ::ShellExecuteW(nullptr, L"open", ToWString(fileName).c_str(), nullptr, nullptr, SW_SHOW);
-  if ((int)res <= 32) {
+  if ((unsigned long long)res <= 32) {
     qCritical("failed to invoke %s: %d", fileName.toUtf8().constData(), res);
   }
 }

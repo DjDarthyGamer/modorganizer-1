@@ -53,7 +53,6 @@ SOURCES += \
     executableslist.cpp \
     editexecutablesdialog.cpp \
     downloadmanager.cpp \
-    downloadlistwidgetcompact.cpp \
     downloadlistwidget.cpp \
     downloadlistsortproxy.cpp \
     downloadlist.cpp \
@@ -91,7 +90,11 @@ SOURCES += \
     modinforegular.cpp \
     modinfobackup.cpp \
     modinfooverwrite.cpp \
-    modinfoforeign.cpp
+    modinfoforeign.cpp \
+    listdialog.cpp \
+    lcdnumber.cpp \
+    forcedloaddialog.cpp \
+    forcedloaddialogwidget.cpp
 
 
 HEADERS  += \
@@ -128,7 +131,6 @@ HEADERS  += \
     executableslist.h \
     editexecutablesdialog.h \
     downloadmanager.h \
-    downloadlistwidgetcompact.h \
     downloadlistwidget.h \
     downloadlistsortproxy.h \
     downloadlist.h \
@@ -167,7 +169,11 @@ HEADERS  += \
     modinforegular.h \
     modinfobackup.h \
     modinfooverwrite.h \
-    modinfoforeign.h
+    modinfoforeign.h \
+    listdialog.h \
+    lcdnumber.h \
+    forcedloaddialog.h \
+    forcedloaddialogwidget.h
 
 FORMS    += \
     transfersavesdialog.ui \
@@ -186,8 +192,6 @@ FORMS    += \
     installdialog.ui \
     finddialog.ui \
     editexecutablesdialog.ui \
-    downloadlistwidgetcompact.ui \
-    downloadlistwidget.ui \
     credentialsdialog.ui \
     categoriesdialog.ui \
     activatemodsdialog.ui \
@@ -196,7 +200,10 @@ FORMS    += \
     problemsdialog.ui \
     previewdialog.ui \
     browserdialog.ui \
-    aboutdialog.ui
+    aboutdialog.ui \
+    listdialog.ui \
+    forcedloaddialog.ui \
+    forcedloaddialogwidget.ui
 
 RESOURCES += \
     resources.qrc \

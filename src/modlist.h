@@ -65,8 +65,9 @@ public:
     COL_VERSION,
     COL_INSTALLTIME,
     COL_PRIORITY,
+    COL_NOTES,
 
-    COL_LASTCOLUMN = COL_PRIORITY
+    COL_LASTCOLUMN = COL_NOTES
   };
 
   typedef boost::signals2::signal<void (const QString &, ModStates)> SignalModStateChanged;
@@ -106,9 +107,13 @@ public:
   static QString getColumnName(int column);
 
   void changeModPriority(int sourceIndex, int newPriority);
+  void changeModPriority(std::vector<int> sourceIndices, int newPriority);
 
   void setOverwriteMarkers(const std::set<unsigned int> &overwrite, const std::set<unsigned int> &overwritten);
   void setPluginContainer(PluginContainer *pluginContainer);
+
+  void setArchiveOverwriteMarkers(const std::set<unsigned int> &overwrite, const std::set<unsigned int> &overwritten);
+  void setArchiveLooseOverwriteMarkers(const std::set<unsigned int> &overwrite, const std::set<unsigned int> &overwritten);
 
   bool modInfoAboutToChange(ModInfo::Ptr info);
   void modInfoChanged(ModInfo::Ptr info);
@@ -117,7 +122,7 @@ public:
 
   int timeElapsedSinceLastChecked() const;
 
-  void highlightMods(const QItemSelection &selected, const MOShared::DirectoryEntry &directoryEntry);
+  void highlightMods(const QItemSelectionModel *selection, const MOShared::DirectoryEntry &directoryEntry);
 
 public:
 
@@ -231,9 +236,18 @@ signals:
    * @param role role of the field that changed
    * @note this signal must only be emitted if the row really did change.
    *       Slots handling this signal therefore do not have to verify that a change has happened
-   * @note this signal is currently only used in tutorials
    **/
-  void modlist_changed(const QModelIndex &index, int role);
+  void modlistChanged(const QModelIndex &index, int role);
+
+  /**
+  * @brief emitted whenever multiple row sin the list has changed
+  *
+  * @param indicies the list of indicies of the changed field
+  * @param role role of the field that changed
+  * @note this signal must only be emitted if the row really did change.
+  *       Slots handling this signal therefore do not have to verify that a change has happened
+  **/
+  void modlistChanged(const QModelIndexList &indicies, int role);
 
   /**
    * @brief emitted to have all selected mods deleted
@@ -265,8 +279,6 @@ protected:
 private:
 
   bool testValid(const QString &modDir);
-
-  void changeModPriority(std::vector<int> sourceIndices, int newPriority);
 
   QVariant getOverwriteData(int column, int role) const;
 
@@ -331,6 +343,10 @@ private:
 
   std::set<unsigned int> m_Overwrite;
   std::set<unsigned int> m_Overwritten;
+  std::set<unsigned int> m_ArchiveOverwrite;
+  std::set<unsigned int> m_ArchiveOverwritten;
+  std::set<unsigned int> m_ArchiveLooseOverwrite;
+  std::set<unsigned int> m_ArchiveLooseOverwritten;
 
   TModInfoChange m_ChangeInfo;
 

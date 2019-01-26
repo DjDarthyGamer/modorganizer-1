@@ -61,7 +61,7 @@ LogWorker::LogWorker()
 {
   m_LogFile.open(QIODevice::WriteOnly);
   qDebug("usvfs log messages are written to %s",
-         qPrintable(m_LogFile.fileName()));
+         qUtf8Printable(m_LogFile.fileName()));
 }
 
 LogWorker::~LogWorker()
@@ -132,7 +132,13 @@ UsvfsConnector::UsvfsConnector()
 
   CreateVFS(&params);
 
-  BlacklistExecutable(L"TSVNCache.exe");
+  ClearExecutableBlacklist();
+  for (auto exec : Settings::instance().executablesBlacklist().split(";")) {
+    std::wstring buf = exec.toStdWString();
+    BlacklistExecutable(buf.data());
+  }
+
+  ClearLibraryForceLoads();
 
   m_LogWorker.moveToThread(&m_WorkerThread);
 
@@ -199,6 +205,25 @@ void UsvfsConnector::updateMapping(const MappingType &mapping)
   */
 }
 
-void UsvfsConnector::updateParams(int logLevel, int crashDumpsType) {
+void UsvfsConnector::updateParams(int logLevel, int crashDumpsType, QString executableBlacklist) 
+{
   USVFSUpdateParams(::logLevel(logLevel), ::crashDumpsType(crashDumpsType));
+  ClearExecutableBlacklist();
+  for (auto exec : executableBlacklist.split(";")) {
+    std::wstring buf = exec.toStdWString();
+    BlacklistExecutable(buf.data());
+  }
+}
+
+void UsvfsConnector::updateForcedLibraries(const QList<MOBase::ExecutableForcedLoadSetting> &forcedLibraries)
+{
+  ClearLibraryForceLoads();
+  for (auto setting : forcedLibraries) {
+    if (setting.enabled()) {
+      ForceLoadLibrary(
+        setting.process().toStdWString().data(),
+        setting.library().toStdWString().data()
+      );
+    }
+  }
 }

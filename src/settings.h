@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with Mod Organizer.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef WORKAROUNDS_H
-#define WORKAROUNDS_H
+#ifndef SETTINGS_H
+#define SETTINGS_H
 
 #include "loadmechanism.h"
 
@@ -30,6 +30,7 @@ along with Mod Organizer.  If not, see <http://www.gnu.org/licenses/>.
 #include <QSettings>
 #include <QString>
 #include <QVariant>
+#include <QColor>
 
 #include <QtGlobal> //for uint
 
@@ -43,6 +44,7 @@ class QSpinBox;
 class QListWidget;
 class QWidget;
 class QLabel;
+class QPushButton;
 
 struct ServerInfo;
 
@@ -109,6 +111,11 @@ public:
   bool forceEnableCoreFiles() const;
 
   /**
+   * @return true if the GUI should be locked when running executables
+   */
+  bool lockGUI() const;
+
+  /**
    * @brief register download speed
    * @param url complete download url
    * @param bytesPerSecond download size in bytes per second
@@ -153,6 +160,11 @@ public:
    * retrieve the directory where the web cache is stored (with native separators)
    **/
   QString getCacheDirectory(bool resolve = true) const;
+
+  /**
+   * retrieve the directory where the managed game is stored (with native separators)
+   **/
+  QString getManagedGameDirectory() const;
 
   /**
    * retrieve the directory where profiles stored (with native separators)
@@ -218,6 +230,20 @@ public:
   */
   int crashDumpsMax() const;
 
+  QColor modlistOverwrittenLooseColor() const;
+
+  QColor modlistOverwritingLooseColor() const;
+
+  QColor modlistOverwrittenArchiveColor() const;
+
+  QColor modlistOverwritingArchiveColor() const;
+
+  QColor modlistContainsPluginColor() const;
+
+  QColor pluginListContainedColor() const;
+
+  QString executablesBlacklist() const;
+
   /**
    * @brief set the nexus login information
    *
@@ -250,6 +276,11 @@ public:
   bool useProxy() const;
 
   /**
+   * @return true if endorsement integration is enabled
+   */
+  bool endorsementIntegration() const;
+
+  /**
    * @return true if the user wants to see non-official plugins installed outside MO in his mod list
    */
   bool displayForeign() const;
@@ -258,6 +289,11 @@ public:
    * @brief sets the new motd hash
    **/
   void setMotDHash(uint hash);
+
+  /**
+  * @return true if the user wants to have archives being parsed to show conflicts and contents
+  */
+  bool archiveParsing() const;
 
   /**
    * @return hash of the last displayed message of the day
@@ -344,10 +380,17 @@ public:
    */
   void registerAsNXMHandler(bool force);
 
+  /**
+   * @brief color the scrollbar of the mod list for custom separator colors?
+   * @return the state of the setting
+   */
+  bool colorSeparatorScrollbar() const;
+
 public slots:
 
   void managedGameChanged(MOBase::IPluginGame const *gamePlugin);
-
+public:
+  static QColor getIdealTextColor(const QColor&  rBackgroundColor);
 private:
 
   static QString obfuscate(const QString &password);
@@ -388,6 +431,13 @@ private:
     QCheckBox *m_compactBox;
     QCheckBox *m_showMetaBox;
     QCheckBox *m_usePrereleaseBox;
+    QPushButton *m_overwritingBtn;
+    QPushButton *m_overwrittenBtn;
+    QPushButton *m_overwritingArchiveBtn;
+    QPushButton *m_overwrittenArchiveBtn;
+    QPushButton *m_containsBtn;
+    QPushButton *m_containedBtn;
+    QCheckBox *m_colorSeparatorsBox;
   };
 
   class PathsTab : public SettingsTab
@@ -434,7 +484,7 @@ private:
     QCheckBox *m_proxyBox;
     QListWidget *m_knownServersList;
     QListWidget *m_preferredServersList;
-
+    QCheckBox *m_endorsementBox;
   };
 
   /** Display/store the configuration in the 'steam' tab of the settings dialogue */
@@ -478,6 +528,8 @@ private:
     QCheckBox *m_hideUncheckedBox;
     QCheckBox *m_forceEnableBox;
     QCheckBox *m_displayForeignBox;
+    QCheckBox *m_lockGUIBox;
+    QCheckBox *m_enableArchiveParsingBox;
   };
 
 private slots:
@@ -503,11 +555,11 @@ private:
 
   std::vector<MOBase::IPlugin*> m_Plugins;
 
-  QMap<QString, QMap<QString, QVariant>> m_PluginSettings;
-  QMap<QString, QMap<QString, QVariant>> m_PluginDescriptions;
+  QMap<QString, QVariantMap> m_PluginSettings;
+  QMap<QString, QVariantMap> m_PluginDescriptions;
 
   QSet<QString> m_PluginBlacklist;
 
 };
 
-#endif // WORKAROUNDS_H
+#endif // SETTINGS_H
