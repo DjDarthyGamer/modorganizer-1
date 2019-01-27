@@ -671,6 +671,13 @@ void Settings::processApiKey(const QString &apiKey)
   m_Settings.setValue("Settings/nexus_api_key", obfuscate(apiKey));
 }
 
+void Settings::clearApiKey(QPushButton *nexusButton)
+{
+  m_Settings.remove("Settings/nexus_api_key");
+  nexusButton->setEnabled(true);
+  nexusButton->setText("Connect to Nexus");
+}
+
 void Settings::checkApiKey(QPushButton *nexusButton)
 {
   if (m_Settings.value("Settings/nexus_api_key", "").toString().isEmpty()) {
@@ -689,6 +696,7 @@ void Settings::query(PluginContainer *pluginContainer, QWidget *parent)
   connect(&dialog, SIGNAL(resetDialogs()), this, SLOT(resetDialogs()));
   connect(&dialog, SIGNAL(processApiKey(const QString &)), this, SLOT(processApiKey(const QString &)));
   connect(&dialog, SIGNAL(closeApiConnection(QPushButton *)), this, SLOT(checkApiKey(QPushButton *)));
+  connect(&dialog, SIGNAL(revokeApiKey(QPushButton *)), this, SLOT(clearApiKey(QPushButton *)));
 
   std::vector<std::unique_ptr<SettingsTab>> tabs;
 
