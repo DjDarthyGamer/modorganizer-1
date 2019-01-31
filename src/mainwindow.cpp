@@ -517,7 +517,7 @@ void MainWindow::updateWindowTitle(const QString &accountName, bool premium)
 {
   QString title = QString("%1 Mod Organizer v%2").arg(
         m_OrganizerCore.managedGame()->gameName(),
-        m_OrganizerCore.getVersion().displayString());
+        m_OrganizerCore.getVersion().displayString(3));
 
   if (!accountName.isEmpty()) {
     title.append(QString(" (%1%2)").arg(accountName, premium ? "*" : ""));
@@ -673,9 +673,9 @@ void MainWindow::updateProblemsButton()
 {
   size_t numProblems = checkForProblems();
   if (numProblems > 0) {
-    ui->actionProblems->setEnabled(true);
-    ui->actionProblems->setIconText(tr("Problems"));
-    ui->actionProblems->setToolTip(tr("There are potential problems with your setup"));
+    ui->actionNotifications->setEnabled(true);
+    ui->actionNotifications->setIconText(tr("Notifications"));
+    ui->actionNotifications->setToolTip(tr("There are notifications to read"));
 
     QPixmap mergedIcon = QPixmap(":/MO/gui/warning").scaled(64, 64);
     {
@@ -683,12 +683,12 @@ void MainWindow::updateProblemsButton()
       std::string badgeName = std::string(":/MO/gui/badge_") + (numProblems < 10 ? std::to_string(static_cast<long long>(numProblems)) : "more");
       painter.drawPixmap(32, 32, 32, 32, QPixmap(badgeName.c_str()));
     }
-    ui->actionProblems->setIcon(QIcon(mergedIcon));
+    ui->actionNotifications->setIcon(QIcon(mergedIcon));
   } else {
-    ui->actionProblems->setEnabled(false);
-    ui->actionProblems->setIconText(tr("No Problems"));
-    ui->actionProblems->setToolTip(tr("Everything seems to be in order"));
-    ui->actionProblems->setIcon(QIcon(":/MO/gui/warning"));
+    ui->actionNotifications->setEnabled(false);
+    ui->actionNotifications->setIconText(tr("No Notifications"));
+    ui->actionNotifications->setToolTip(tr("There are no notifications"));
+    ui->actionNotifications->setIcon(QIcon(":/MO/gui/warning"));
   }
 }
 
@@ -734,7 +734,7 @@ size_t MainWindow::checkForProblems()
 
 void MainWindow::about()
 {
-  AboutDialog dialog(m_OrganizerCore.getVersion().displayString(), this);
+  AboutDialog dialog(m_OrganizerCore.getVersion().displayString(3), this);
   connect(&dialog, SIGNAL(linkClicked(QString)), this, SLOT(linkClicked(QString)));
   dialog.exec();
 }
@@ -1893,11 +1893,7 @@ void MainWindow::storeSettings(QSettings &settings) {
     settings.remove("log_split");
     settings.remove("filters_visible");
     settings.remove("browser_geometry");
-    settings.beginGroup("geometry");
-    for (auto key : settings.childKeys()) {
-      settings.remove(key);
-    }
-    settings.endGroup();
+    settings.remove("geometry");
     settings.remove("reset_geometry");
   } else {
     settings.setValue("window_geometry", saveGeometry());
@@ -2979,7 +2975,7 @@ void MainWindow::displayModInformation(const QString &modName, int tab)
 {
   unsigned int index = ModInfo::getIndex(modName);
   if (index == UINT_MAX) {
-    qCritical("failed to resolve mod name %s", modName.toUtf8().constData());
+    qCritical("failed to resolve mod name %s", qUtf8Printable(modName));
     return;
   }
 
@@ -4971,15 +4967,17 @@ void MainWindow::writeDataToFile(QFile &file, const QString &directory, const Di
 void MainWindow::writeDataToFile()
 {
   QString fileName = QFileDialog::getSaveFileName(this);
-  QFile file(fileName);
-  if (!file.open(QIODevice::WriteOnly)) {
-    reportError(tr("failed to write to file %1").arg(fileName));
+  if (!fileName.isEmpty()) {
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly)) {
+      reportError(tr("failed to write to file %1").arg(fileName));
+    }
+
+    writeDataToFile(file, "data", *m_OrganizerCore.directoryStructure());
+    file.close();
+
+    MessageDialog::showMessage(tr("%1 written").arg(QDir::toNativeSeparators(fileName)), this);
   }
-
-  writeDataToFile(file, "data", *m_OrganizerCore.directoryStructure());
-  file.close();
-
-  MessageDialog::showMessage(tr("%1 written").arg(QDir::toNativeSeparators(fileName)), this);
 }
 
 
@@ -5210,7 +5208,7 @@ void MainWindow::previewDataFile()
   const FileEntry::Ptr file = m_OrganizerCore.directoryStructure()->searchFile(ToWString(fileName), nullptr);
 
   if (file.get() == nullptr) {
-    reportError(tr("file not found: %1").arg(fileName));
+    reportError(tr("file not found: %1").arg(qUtf8Printable(fileName)));
     return;
   }
 
@@ -5664,7 +5662,7 @@ BSA::EErrorCode MainWindow::extractBSA(BSA::Archive &archive, BSA::Folder::Ptr f
 
   for (unsigned int i = 0; i < folder->getNumFiles(); ++i) {
     BSA::File::Ptr file = folder->getFile(i);
-    BSA::EErrorCode res = archive.extract(file, destination.toUtf8().constData());
+    BSA::EErrorCode res = archive.extract(file, qUtf8Printable(destination));
     if (res != BSA::ERROR_NONE) {
       reportError(tr("failed to read %1: %2").arg(file->getName().c_str()).arg(res));
       result = res;
@@ -5796,11 +5794,23 @@ void MainWindow::on_bsaList_itemChanged(QTreeWidgetItem*, int)
   m_CheckBSATimer.start(500);
 }
 
-void MainWindow::on_actionProblems_triggered()
+void MainWindow::on_actionNotifications_triggered()
 {
   ProblemsDialog problems(m_PluginContainer.plugins<IPluginDiagnose>(), this);
   if (problems.hasProblems()) {
+    QSettings &settings = m_OrganizerCore.settings().directInterface();
+    QSize size = settings.value(QString("geometry/%1/size").arg(problems.objectName())).toSize();
+    QPoint pos = settings.value(QString("geometry/%1/pos").arg(problems.objectName())).toPoint();
+    if (size.isValid())
+      problems.resize(size);
+    if (!pos.isNull())
+      problems.move(pos);
+
     problems.exec();
+
+    settings.setValue(QString("geometry/%1/size").arg(problems.objectName()), problems.size());
+    settings.setValue(QString("geometry/%1/pos").arg(problems.objectName()), problems.pos());
+
     updateProblemsButton();
   }
 }
@@ -6460,7 +6470,7 @@ void MainWindow::dropLocalFile(const QUrl &url, const QString &outputDir, bool m
 {
   QFileInfo file(url.toLocalFile());
   if (!file.exists()) {
-    qWarning("invalid source file %s", qUtf8Printable(file.absoluteFilePath()));
+    qWarning("invalid source file: %s", qUtf8Printable(file.absoluteFilePath()));
     return;
   }
   QString target = outputDir + "/" + file.fileName();

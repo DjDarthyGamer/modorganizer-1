@@ -526,7 +526,7 @@ bool InstallationManager::testOverwrite(GuessedValue<QString> &modName, bool *me
           settingsFile.write(originalSettings);
           settingsFile.close();
         } else {
-          qCritical("failed to restore original settings: %s", metaFilename.toUtf8().constData());
+          qCritical("failed to restore original settings: %s", qUtf8Printable(metaFilename));
         }
         return true;
       } else if (overwriteDialog.action() == QueryOverwriteDialog::ACT_MERGE) {
@@ -575,7 +575,7 @@ bool InstallationManager::doInstall(GuessedValue<QString> &modName, QString game
   QString targetDirectory = QDir(m_ModsDirectory + "/" + modName).canonicalPath();
   QString targetDirectoryNative = QDir::toNativeSeparators(targetDirectory);
 
-  qDebug("installing to \"%s\"", targetDirectoryNative.toUtf8().constData());
+  qDebug("installing to \"%s\"", qUtf8Printable(targetDirectoryNative));
 
   m_InstallationProgress = new QProgressDialog(m_ParentWidget);
   ON_BLOCK_EXIT([this] () {
@@ -762,7 +762,7 @@ bool InstallationManager::install(const QString &fileName,
   if (fileInfo.dir() == QDir(m_DownloadsDirectory)) {
     m_CurrentFile = fileInfo.fileName();
   }
-  qDebug("using mod name \"%s\" (id %d) -> %s", modName->toUtf8().constData(), modID, qUtf8Printable(m_CurrentFile));
+  qDebug("using mod name \"%s\" (id %d) -> %s", qUtf8Printable(modName), modID, qUtf8Printable(m_CurrentFile));
 
   //If there's an archive already open, close it. This happens with the bundle
   //installer when it uncompresses a split archive, then finds it has a real archive

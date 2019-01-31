@@ -110,7 +110,7 @@ void OverwriteInfoDialog::setModInfo(ModInfo::Ptr modInfo)
   if (QDir(modInfo->absolutePath()).exists()) {
     m_FileSystemModel->setRootPath(modInfo->absolutePath());
   } else {
-    throw MyException(tr("%1 not found").arg(modInfo->absolutePath()));
+    throw MyException(tr("mod not found: %1").arg(qUtf8Printable(modInfo->absolutePath())));
   }
 }
 
@@ -221,7 +221,7 @@ void OverwriteInfoDialog::openFile(const QModelIndex &index)
 
   HINSTANCE res = ::ShellExecuteW(nullptr, L"open", ToWString(fileName).c_str(), nullptr, nullptr, SW_SHOW);
   if ((INT_PTR)res <= 32) {
-    qCritical("failed to invoke %s: %d", fileName.toUtf8().constData(), res);
+    qCritical("failed to invoke %s: %d", qUtf8Printable(fileName), res);
   }
 }
 

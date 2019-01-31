@@ -986,7 +986,7 @@ MOBase::IModInterface *OrganizerCore::installMod(const QString &fileName,
       emit modInstalled(modName);
       return modInfo.data();
     } else {
-      reportError(tr("mod \"%1\" not found").arg(modName));
+      reportError(tr("mod not found: %1").arg(qUtf8Printable(modName)));
     }
   } else if (m_InstallationManager.wasCancelled()) {
     QMessageBox::information(qApp->activeWindow(), tr("Installation cancelled"),
@@ -1044,7 +1044,7 @@ void OrganizerCore::installDownload(int index)
 
         m_ModInstalled(modName);
       } else {
-        reportError(tr("mod \"%1\" not found").arg(modName));
+        reportError(tr("mod not found: %1").arg(qUtf8Printable(modName)));
       }
       m_DownloadManager.markInstalled(index);
 
@@ -1105,7 +1105,7 @@ QStringList OrganizerCore::findFiles(
       }
     }
   } else {
-    qWarning("directory %s not found", qUtf8Printable(path));
+    qWarning("directory not found: %1", qUtf8Printable(path));
   }
   return result;
 }
@@ -1124,7 +1124,7 @@ QStringList OrganizerCore::getFileOrigins(const QString &fileName) const
           ToQString(m_DirectoryStructure->getOriginByID(i.first).getName()));
     }
   } else {
-    qDebug("%s not found", qUtf8Printable(fileName));
+    qWarning("file not found: %1", qUtf8Printable(fileName));
   }
   return result;
 }
@@ -1183,7 +1183,11 @@ QStringList OrganizerCore::modsSortedByProfilePriority() const
            i < currentProfile()->getPriorityMinimum() + (int)currentProfile()->numRegularMods();
            ++i) {
     int modIndex = currentProfile()->modIndexByPriority(i);
-    res.push_back(ModInfo::getByIndex(modIndex)->name());
+    auto modInfo = ModInfo::getByIndex(modIndex);
+    if (!modInfo->hasFlag(ModInfo::FLAG_OVERWRITE) &&
+        !modInfo->hasFlag(ModInfo::FLAG_BACKUP)) {
+      res.push_back(ModInfo::getByIndex(modIndex)->name());
+    }
   }
   return res;
 }
@@ -1266,7 +1270,7 @@ HANDLE OrganizerCore::spawnBinaryProcess(const QFileInfo &binary,
 
   if (!binary.exists()) {
     reportError(
-        tr("Executable \"%1\" not found").arg(binary.absoluteFilePath()));
+        tr("Executable not found: %1").arg(qUtf8Printable(binary.absoluteFilePath())));
     return INVALID_HANDLE_VALUE;
   }
 
@@ -1493,7 +1497,7 @@ HANDLE OrganizerCore::startApplication(const QString &executable,
       }
     } catch (const std::runtime_error &) {
       qWarning("\"%s\" not set up as executable",
-               executable.toUtf8().constData());
+               qUtf8Printable(executable));
       binary = QFileInfo(executable);
     }
   }
@@ -1557,7 +1561,7 @@ bool OrganizerCore::waitForProcessCompletion(HANDLE handle, LPDWORD exitCode, IL
         uilock->setProcessName(processName);
       qDebug() << "Waiting for"
         << (originalHandle ? "spawned" : "usvfs")
-        << "process completion :" << processName.toUtf8().constData();
+        << "process completion :" << qUtf8Printable(processName);
       newHandle = false;
     }
 
