@@ -3988,10 +3988,8 @@ void MainWindow::checkModsForUpdates()
     if (m_OrganizerCore.settings().getNexusApiKey(apiKey)) {
       m_OrganizerCore.doAfterLogin([this] () { this->checkModsForUpdates(); });
       NexusInterface::instance(&m_PluginContainer)->getAccessManager()->apiCheck(apiKey);
-    } else { // otherwise there will be no endorsement info
-      MessageDialog::showMessage(tr("Not logged in, endorsement information will be wrong"),
-                                  this, true);
-      m_ModsToUpdate = ModInfo::checkAllForUpdate(&m_PluginContainer, this);
+    } else {
+      qWarning("You are not currently authenticated with Nexus. Please do so under Settings -> Nexus.");
     }
   }
 
@@ -5442,12 +5440,10 @@ void MainWindow::modUpdateCheck()
   } else {
     QString apiKey;
     if (m_OrganizerCore.settings().getNexusApiKey(apiKey)) {
-      m_OrganizerCore.doAfterLogin([this]() { this->checkModsForUpdates(); });
+      m_OrganizerCore.doAfterLogin([this]() { this->modUpdateCheck(); });
       NexusInterface::instance(&m_PluginContainer)->getAccessManager()->apiCheck(apiKey);
-    } else { // otherwise there will be no endorsement info
-      MessageDialog::showMessage(tr("Not logged in, endorsement information will be wrong"),
-        this, true);
-      m_ModsToUpdate += ModInfo::autoUpdateCheck(&m_PluginContainer, this);
+    } else {
+      qWarning("You are not currently authenticated with Nexus. Please do so under Settings -> Nexus.");
     }
   }
 }
