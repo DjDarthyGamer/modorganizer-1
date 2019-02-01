@@ -560,7 +560,7 @@ bool InstallationManager::ensureValidModName(GuessedValue<QString> &name) const
 
 bool InstallationManager::doInstall(GuessedValue<QString> &modName, QString gameName, int modID,
                                     const QString &version, const QString &newestVersion,
-                                    int categoryID, const QString &repository)
+                                    int categoryID, int fileCategoryID, const QString &repository)
 {
   if (!ensureValidModName(modName)) {
     return false;
@@ -640,6 +640,7 @@ bool InstallationManager::doInstall(GuessedValue<QString> &modName, QString game
   if (!settingsFile.contains("category")) {
     settingsFile.setValue("category", QString::number(categoryID));
   }
+  settingsFile.setValue("nexusFileStatus", fileCategoryID);
   settingsFile.setValue("installationFile", m_CurrentFile);
   settingsFile.setValue("repository", repository);
   settingsFile.setValue("url", m_URL);
@@ -720,6 +721,7 @@ bool InstallationManager::install(const QString &fileName,
   QString version = "";
   QString newestVersion = "";
   int categoryID = 0;
+  int fileCategoryID = 1;
   QString repository = "Nexus";
 
   QString metaName = fileName + ".meta";
@@ -738,6 +740,7 @@ bool InstallationManager::install(const QString &fileName,
         metaFile.value("category", 0).toInt());
     categoryID = CategoryFactory::instance().getCategoryID(categoryIndex);
     repository = metaFile.value("repository", "").toString();
+    fileCategoryID = metaFile.value("fileCategory", 1).toInt();
   }
 
   if (version.isEmpty()) {
@@ -815,7 +818,7 @@ bool InstallationManager::install(const QString &fileName,
             // the simple installer only prepares the installation, the rest
             // works the same for all installers
             if (!doInstall(modName, gameName, modID, version, newestVersion, categoryID,
-                           repository)) {
+                            fileCategoryID, repository)) {
               installResult = IPluginInstaller::RESULT_FAILED;
             }
           }
