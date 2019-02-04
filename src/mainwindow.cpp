@@ -5474,6 +5474,7 @@ void MainWindow::nxmUpdatesAvailable(QString gameName, int modID, QVariant userD
   }
   std::vector<ModInfo::Ptr> modsList = ModInfo::getByModID(gameNameReal, modID);
 
+  bool requiresInfo = false;
   for (auto mod : modsList) {
     bool foundUpdate = false;
     bool oldFile = false;
@@ -5529,12 +5530,17 @@ void MainWindow::nxmUpdatesAvailable(QString gameName, int modID, QVariant userD
     if (foundUpdate) {
       // Just get the standard data updates for endorsements and descriptions
       mod->setLastNexusUpdate(QDateTime::currentDateTimeUtc());
-      mod->updateNXMInfo();
     } else {
       // Scrape mod data here so we can use the mod version if no file update was located
-      NexusInterface::instance(&m_PluginContainer)->requestModInfo(gameName, modID, this, QVariant(), QString());
+      requiresInfo = true;
     }
+
+    if (mod->getLastNexusQuery().addDays(1) <= QDateTime::currentDateTime())
+      requiresInfo = true;
   }
+
+  if (requiresInfo)
+    NexusInterface::instance(&m_PluginContainer)->requestModInfo(gameName, modID, this, QVariant(), QString());
 
   if (--m_ModsToUpdate <= 0) {
     statusBar()->hide();
