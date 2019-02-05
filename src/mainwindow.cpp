@@ -5535,7 +5535,7 @@ void MainWindow::nxmUpdatesAvailable(QString gameName, int modID, QVariant userD
       requiresInfo = true;
     }
 
-    if (mod->getLastNexusQuery().addDays(1) <= QDateTime::currentDateTime())
+    if (mod->getLastNexusQuery().addDays(1) <= QDateTime::currentDateTimeUtc())
       requiresInfo = true;
   }
 
@@ -5562,7 +5562,7 @@ void MainWindow::nxmModInfoAvailable(QString gameName, int modID, QVariant userD
   std::vector<ModInfo::Ptr> modsList = ModInfo::getByModID(gameNameReal, modID);
   for (auto mod : modsList) {
     QDateTime now = QDateTime::currentDateTimeUtc();
-    QDateTime updateTarget = mod->getLastNexusUpdate().addSecs(3600);
+    QDateTime updateTarget = mod->getExpires();
     if (now >= updateTarget) {
       mod->setNewestVersion(result["version"].toString());
       mod->setLastNexusUpdate(QDateTime::currentDateTimeUtc());
@@ -5579,6 +5579,7 @@ void MainWindow::nxmModInfoAvailable(QString gameName, int modID, QVariant userD
         mod->setIsEndorsed(false);
     }
     mod->setLastNexusQuery(QDateTime::currentDateTimeUtc());
+    mod->setNexusLastModified(QDateTime::fromSecsSinceEpoch(result["updated_timestamp"].toInt()));
     mod->saveMeta();
   }
 }
