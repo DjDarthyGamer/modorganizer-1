@@ -461,6 +461,9 @@ QString Settings::executablesBlacklist() const
         << "TGitCache.exe"
         << "Steam.exe"
         << "GameOverlayUI.exe"
+        << "Discord.exe"
+        << "GalaxyClient.exe"
+        << "Spotify.exe"
     ).join(";")
   ).toString();
 }
